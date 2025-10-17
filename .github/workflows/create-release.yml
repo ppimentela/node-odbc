@@ -42,9 +42,9 @@ jobs:
     - name: Package Binary
       run: ./node_modules/.bin/node-pre-gyp package
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v5
       with:
-        name: ${{ matrix.os }}-binaries
+        name: binaries-${{ matrix.os }}
         path: build/stage/*.tar.gz
 
   create-release:
@@ -57,7 +57,11 @@ jobs:
       run: jq -r '"version=" + .version' package.json  >> "$GITHUB_OUTPUT"
     # Download all of the various binaries that were created
     - name: Download built binaries from workflow
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v5
+      with:
+        path: binaries
+        pattern: binaries-*
+        merge-multiple: true
     - name: Create Release 
       id: create_release
       uses: softprops/action-gh-release@v2
@@ -68,7 +72,7 @@ jobs:
         generate_release_notes: true
         fail_on_unmatched_files: true
         files:
-          ./*-binaries/odbc-*.tar.gz
+          ./binaries/odbc-*.tar.gz
     - name: Publish to NPM
       uses: JS-DevTools/npm-publish@v3
       with:
