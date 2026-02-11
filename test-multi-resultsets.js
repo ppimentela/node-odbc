@@ -105,9 +105,7 @@ async function testMultipleResultSets() {
       
       if (resultSet.length > 0) {
         const firstRowJson = JSON.stringify(resultSet[0], null, 2);
-        const indentedJson = firstRowJson.split('\n').map((line, idx) => 
-          idx === 0 ? `    ${line}` : `    ${line}`
-        ).join('\n');
+        const indentedJson = firstRowJson.split('\n').map(line => `    ${line}`).join('\n');
         console.log('    First row:');
         console.log(indentedJson);
       } else {
