@@ -1906,8 +1906,9 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         }
 
         // Save the result set with column metadata to allResultSets
+        // Use swap/move to transfer ownership and prevent double-free
         ResultSetData rsData;
-        rsData.rows = data->storedRows;
+        rsData.rows.swap(data->storedRows);  // Transfer ownership of rows vector
         rsData.columns = data->columns;
         rsData.column_count = data->column_count;
         rsData.bound_columns = data->bound_columns;
@@ -1916,8 +1917,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         
         data->allResultSets.push_back(rsData);
 
-        // Clear storedRows and reset pointers (don't free, they're now in allResultSets)
-        data->storedRows.clear();
+        // Reset pointers to NULL (ownership transferred to allResultSets)
         data->columns = NULL;
         data->column_count = 0;
         data->bound_columns = NULL;
@@ -1933,6 +1933,11 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
           this->errors = GetODBCErrors(SQL_HANDLE_STMT, data->hstmt);
           SetError("[odbc] Error getting more results\0");
           return;
+        }
+        
+        // Set fetch size for the next result set
+        if (hasMoreResults) {
+          set_fetch_size(data, data->fetch_size);
         }
       }
     }
@@ -1951,8 +1956,9 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
       for (size_t rs_index = 0; rs_index < data->allResultSets.size(); rs_index++) {
         ResultSetData &rsData = data->allResultSets[rs_index];
         
-        // Restore column metadata and rows for this result set
-        data->storedRows = rsData.rows;
+        // Transfer ownership of rows and column metadata for processing
+        // Use swap to ensure proper ownership transfer
+        data->storedRows.swap(rsData.rows);
         data->columns = rsData.columns;
         data->column_count = rsData.column_count;
         data->bound_columns = rsData.bound_columns;
@@ -1966,8 +1972,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         
         allResults.Set(rs_index, singleResult);
         
-        // Mark rows as processed (process_data_for_napi frees them internally)
-        data->allResultSets[rs_index].rows.clear();
+        // After process_data_for_napi, rows are freed and storedRows is cleared
         // Mark columns as processed to prevent double-free
         data->allResultSets[rs_index].columns = NULL;
         data->allResultSets[rs_index].bound_columns = NULL;
