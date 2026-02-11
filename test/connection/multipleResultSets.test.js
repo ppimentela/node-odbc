@@ -68,7 +68,6 @@ describe('.callProcedure() with multiple result sets', () => {
       // This test requires a stored procedure that returns multiple result sets
       if (!process.env.DB_MULTI_RESULTSET_PROC) {
         this.skip();
-        return;
       }
 
       const procedureName = process.env.DB_MULTI_RESULTSET_PROC;

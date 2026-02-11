@@ -104,7 +104,12 @@ async function testMultipleResultSets() {
       }
       
       if (resultSet.length > 0) {
-        console.log('    First row:', JSON.stringify(resultSet[0], null, 2).split('\n').join('\n    '));
+        const firstRowJson = JSON.stringify(resultSet[0], null, 2);
+        const indentedJson = firstRowJson.split('\n').map((line, idx) => 
+          idx === 0 ? `    ${line}` : `    ${line}`
+        ).join('\n');
+        console.log('    First row:');
+        console.log(indentedJson);
       } else {
         console.log('    (empty result set)');
       }
