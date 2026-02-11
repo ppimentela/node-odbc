@@ -1,7 +1,7 @@
 {
   "name": "@miatechnet/node-odbc",
   "description": "unixodbc bindings for node - Fork with multi-result set support for stored procedures",
-  "version": "2.4.10-multiresult.1",
+  "version": "2.4.10",
   "homepage": "https://github.com/ppimentela/node-odbc/",
   "main": "lib/odbc.js",
   "types": "lib/odbc.d.ts",
