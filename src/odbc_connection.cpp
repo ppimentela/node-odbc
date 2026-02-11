@@ -1910,7 +1910,8 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         return_code = fetch_all_and_store(
           data,
           true,
-          &alloc_error
+          &alloc_error,
+          false
         );
         
         if (alloc_error) {
@@ -4079,7 +4080,8 @@ fetch_all_and_store
 (
   StatementData            *data,
   bool                      set_position,
-  bool                     *alloc_error
+  bool                     *alloc_error,
+  bool                      close_cursor
 )
 {
   SQLRETURN return_code;
@@ -4100,8 +4102,8 @@ fetch_all_and_store
     return return_code;
   }
 
-  // will return either SQL_ERROR or SQL_NO_DATA
-  if (data->column_count > 0) {
+  // Only close the cursor if indicated
+  if (close_cursor && data->column_count > 0) {
     return_code = SQLCloseCursor(data->hstmt);
     if (!SQL_SUCCEEDED(return_code)) {
       return return_code;
