@@ -1,5 +1,5 @@
 {
-  "name": "@ppimentela/node-odbc",
+  "name": "@miatechnet/node-odbc",
   "description": "unixodbc bindings for node - Fork with multi-result set support for stored procedures",
   "version": "2.4.10-multiresult.1",
   "homepage": "https://github.com/ppimentela/node-odbc/",
