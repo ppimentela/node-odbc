@@ -1968,12 +1968,20 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         
         // Mark rows as processed (process_data_for_napi frees them internally)
         data->allResultSets[rs_index].rows.clear();
+        // Mark columns as processed to prevent double-free
+        data->allResultSets[rs_index].columns = NULL;
+        data->allResultSets[rs_index].bound_columns = NULL;
+        data->allResultSets[rs_index].row_status_array = NULL;
       }
       
-      // Reset pointers to avoid double-free in destructor
+      // Clear allResultSets to prevent deleteAllResultSets from attempting to free already-processed memory
+      data->allResultSets.clear();
+      
+      // Reset pointers to avoid double-free (deleteColumns is called in destructor)
       data->columns = NULL;
       data->column_count = 0;
       data->bound_columns = NULL;
+      data->row_status_array = NULL;
 
       std::vector<napi_value> callbackArguments;
       callbackArguments.push_back(env.Null());

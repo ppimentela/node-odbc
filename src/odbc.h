@@ -285,7 +285,13 @@ typedef struct StatementData {
   }
   
   
-  // Static helper to free columns and bound_columns arrays
+  // Static helper method to free columns and bound_columns arrays
+  // Parameters:
+  //   columns - Array of Column pointers to free
+  //   column_count - Number of columns in the array
+  //   bound_columns - Array of ColumnBuffer to free
+  //   row_status_array - Array of row status to free
+  // Note: This method takes ownership of the pointers and frees them
   static void freeColumnsAndBuffers(Column **columns, SQLSMALLINT column_count, ColumnBuffer *bound_columns, SQLUSMALLINT *row_status_array) {
     if (columns == NULL) return;
     
@@ -323,7 +329,9 @@ typedef struct StatementData {
     delete[] bound_columns;
   }
 
-  // Free all result sets stored in allResultSets
+  // Clean up all stored result sets in allResultSets
+  // This method frees all rows, columns, and buffers for each result set
+  // Called by the destructor to ensure all memory is properly released
   void deleteAllResultSets() {
     for (size_t rs_index = 0; rs_index < allResultSets.size(); rs_index++) {
       ResultSetData &rsData = allResultSets[rs_index];
