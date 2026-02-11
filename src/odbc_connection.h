@@ -108,7 +108,7 @@ Napi::Array process_data_for_napi(Napi::Env env, StatementData *data, Napi::Arra
 SQLRETURN bind_buffers(StatementData *data);
 SQLRETURN prepare_for_fetch(StatementData *data);
 SQLRETURN fetch_and_store(StatementData *data, bool set_position, bool *alloc_error);
-SQLRETURN fetch_all_and_store(StatementData *data, bool set_position, bool *alloc_error);
+SQLRETURN fetch_all_and_store(StatementData *data, bool set_position, bool *alloc_error, bool close_cursor = true);
 SQLRETURN set_fetch_size(StatementData *data, SQLULEN fetch_size);
 Napi::Value parse_query_options(Napi::Env env, Napi::Value options_value, QueryOptions *query_options);
 #endif
