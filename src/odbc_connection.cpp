@@ -1937,7 +1937,7 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         
         // Set fetch size for the next result set
         if (hasMoreResults) {
-          set_fetch_size(data, 1);
+          set_fetch_size(data, data->fetch_size);
         }
       }
     }
