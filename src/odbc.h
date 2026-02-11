@@ -293,40 +293,40 @@ typedef struct StatementData {
   //   row_status_array - Array of row status to free
   // Note: This method takes ownership of the pointers and frees them
   static void freeColumnsAndBuffers(Column **columns, SQLSMALLINT column_count, ColumnBuffer *bound_columns, SQLUSMALLINT *row_status_array) {
-    if (columns == NULL) return;
-    
-    for (int i = 0; i < column_count; i++) {
-      switch (columns[i]->bind_type) {
-        case SQL_C_CHAR:
-        case SQL_C_UTINYINT:
-        case SQL_C_BINARY:
-          delete[] (SQLCHAR *)bound_columns[i].buffer;
-          break;
-        case SQL_C_WCHAR:
-          delete[] (SQLWCHAR *)bound_columns[i].buffer;
-          break;
-        case SQL_C_DOUBLE:
-          delete[] (SQLDOUBLE *)bound_columns[i].buffer;
-          break;
-        case SQL_C_USHORT:
-          delete[] (SQLUSMALLINT *)bound_columns[i].buffer;
-          break;
-        case SQL_C_SLONG:
-          delete[] (SQLUINTEGER *)bound_columns[i].buffer;
-          break;
-        case SQL_C_UBIGINT:
-          delete[] (SQLUBIGINT *)bound_columns[i].buffer;
-          break;
-      }
+    if (columns != NULL && bound_columns != NULL) {
+      for (int i = 0; i < column_count; i++) {
+        switch (columns[i]->bind_type) {
+          case SQL_C_CHAR:
+          case SQL_C_UTINYINT:
+          case SQL_C_BINARY:
+            delete[] (SQLCHAR *)bound_columns[i].buffer;
+            break;
+          case SQL_C_WCHAR:
+            delete[] (SQLWCHAR *)bound_columns[i].buffer;
+            break;
+          case SQL_C_DOUBLE:
+            delete[] (SQLDOUBLE *)bound_columns[i].buffer;
+            break;
+          case SQL_C_USHORT:
+            delete[] (SQLUSMALLINT *)bound_columns[i].buffer;
+            break;
+          case SQL_C_SLONG:
+            delete[] (SQLUINTEGER *)bound_columns[i].buffer;
+            break;
+          case SQL_C_UBIGINT:
+            delete[] (SQLUBIGINT *)bound_columns[i].buffer;
+            break;
+        }
 
-      delete[] columns[i]->ColumnName;
-      delete[] bound_columns[i].length_or_indicator_array;
-      delete columns[i];
+        delete[] columns[i]->ColumnName;
+        delete[] bound_columns[i].length_or_indicator_array;
+        delete columns[i];
+      }
+      delete[] columns;
+      delete[] bound_columns;
     }
 
     delete[] row_status_array;
-    delete[] columns;
-    delete[] bound_columns;
   }
 
   // Clean up all stored result sets in allResultSets
@@ -354,8 +354,8 @@ typedef struct StatementData {
     }
     this->storedRows.clear();
 
-    // NULL guard for columns pointer
-    if (this->columns != NULL) {
+    // NULL guard for columns and bound_columns pointers
+    if (this->columns != NULL && this->bound_columns != NULL) {
       for (int i = 0; i < this->column_count; i++) {
         switch (this->columns[i]->bind_type) {
           case SQL_C_CHAR:
