@@ -4102,7 +4102,7 @@ fetch_all_and_store
     return return_code;
   }
 
-  // Solo cerrar el cursor si se indica
+  // Only close the cursor if indicated
   if (close_cursor && data->column_count > 0) {
     return_code = SQLCloseCursor(data->hstmt);
     if (!SQL_SUCCEEDED(return_code)) {
