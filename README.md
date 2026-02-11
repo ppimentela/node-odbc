@@ -14,19 +14,55 @@ Esta versión ha sido modificada para soportar **múltiples result sets** cuando
 ### Ejemplo de uso con múltiples result sets
 
 ```javascript
-const odbc = require('@yoredstorm/node-odbc');
+const odbc = require('@miatechnet/node-odbc');
 
 async function callProcedureWithMultipleResults() {
     const connection = await odbc.connect('DSN=MYDSN');
     const result = await connection.callProcedure(null, null, 'MY_PROC', [param1, param2]);
     
-    // Ahora result contiene TODOS los result sets
+    // result es un array donde cada elemento es un result set
     console.log('Total de result sets:', result.length);
     
+    // Acceder a cada result set
+    for (let i = 0; i < result.length; i++) {
+        const resultSet = result[i];
+        console.log(`Result Set ${i + 1}:`);
+        console.log(`  Filas: ${resultSet.length}`);
+        console.log(`  Columnas: ${resultSet.columns.length}`);
+        console.log(`  Datos:`, resultSet);
+    }
+    
+    // También puedes usar forEach
     result.forEach((resultSet, index) => {
-        console.log(`Result Set ${index + 1}:`, resultSet);
+        console.log(`Result Set ${index + 1} tiene ${resultSet.length} filas`);
     });
+    
+    // Metadata del procedimiento (disponible en el array principal)
+    console.log('Statement:', result.statement);
+    console.log('Parámetros:', result.parameters);
 }
+```
+
+#### Notas importantes:
+- **Para IBM DB2/i**: El stored procedure debe declarar `DYNAMIC RESULT SETS N` donde N es el número de result sets que retorna
+- Los result sets vacíos (sin columnas, como los de INSERT/UPDATE/SET) se omiten automáticamente
+- Cada result set es un array con metadata adicional: `columns`, `count`, `statement`
+- El array principal también contiene metadata del procedimiento: `statement`, `parameters`
+
+#### Ejemplo de stored procedure que retorna múltiples result sets (DB2/i):
+
+```sql
+CREATE OR REPLACE PROCEDURE MY_SCHEMA.MULTI_RESULT_PROC()
+  LANGUAGE SQL
+  DYNAMIC RESULT SETS 2  -- Importante: especificar el número de result sets
+  READS SQL DATA
+BEGIN
+  DECLARE c1 CURSOR FOR SELECT * FROM TABLE1;
+  DECLARE c2 CURSOR FOR SELECT * FROM TABLE2;
+  
+  OPEN c1;
+  OPEN c2;
+END
 ```
 
 ---
