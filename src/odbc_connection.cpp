@@ -1906,13 +1906,13 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         }
 
         // Guardar el result set actual en allResultSets
-        if (data->storedRows.size() > 0) {
+        //if (data->storedRows.size() > 0) {
           std::vector<ColumnData*> currentResultSet;
           for (size_t i = 0; i < data->storedRows.size(); i++) {
             currentResultSet.push_back(data->storedRows[i]);
           }
           data->allResultSets.push_back(currentResultSet);
-        }
+        //}
 
         // Limpiar storedRows para el próximo result set (sin liberar memoria)
         data->storedRows.clear();
