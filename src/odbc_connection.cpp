@@ -1887,6 +1887,25 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
           return;
         }
 
+        // Skip result sets with no columns (e.g., from INSERT/UPDATE/SET statements)
+        if (data->column_count == 0) {
+          // No columns means this is not a SELECT-like result set, skip it
+          return_code = SQLMoreResults(data->hstmt);
+          if (return_code == SQL_NO_DATA) {
+            hasMoreResults = false;
+          } else if (!SQL_SUCCEEDED(return_code)) {
+            this->errors = GetODBCErrors(SQL_HANDLE_STMT, data->hstmt);
+            SetError("[odbc] Error getting more results\0");
+            return;
+          }
+          
+          // Set fetch size for the next result set
+          if (hasMoreResults) {
+            set_fetch_size(data, data->fetch_size);
+          }
+          continue;
+        }
+
         // Obtener todos los datos del result set actual
         return_code = fetch_all_and_store(
           data,
@@ -1987,6 +2006,25 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
       data->column_count = 0;
       data->bound_columns = NULL;
       data->row_status_array = NULL;
+
+      // Set metadata properties on the outer allResults array for backward compatibility
+      if (data->sql != NULL) {
+        #ifdef UNICODE
+        allResults.Set(Napi::String::New(env, STATEMENT), Napi::String::New(env, (const char16_t*)data->sql));
+        #else
+        allResults.Set(Napi::String::New(env, STATEMENT), Napi::String::New(env, (const char*)data->sql));
+        #endif
+      } else {
+        allResults.Set(Napi::String::New(env, STATEMENT), env.Null());
+      }
+
+      if (napiParameters.IsEmpty()) {
+        allResults.Set(Napi::String::New(env, PARAMETERS), env.Undefined());
+      } else {
+        allResults.Set(Napi::String::New(env, PARAMETERS), napiParameters.Value());
+      }
+
+      allResults.Set(Napi::String::New(env, RETURN), env.Undefined());
 
       std::vector<napi_value> callbackArguments;
       callbackArguments.push_back(env.Null());
