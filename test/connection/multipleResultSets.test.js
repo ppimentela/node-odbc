@@ -64,10 +64,10 @@ describe('.callProcedure() with multiple result sets', () => {
   });
 
   describe('...with callbacks...', () => {
-    it('...should return all result sets from a stored procedure', (done) => {
+    it('...should return all result sets from a stored procedure', function(done) {
       // This test requires a stored procedure that returns multiple result sets
       if (!process.env.DB_MULTI_RESULTSET_PROC) {
-        done();
+        this.skip();
         return;
       }
 

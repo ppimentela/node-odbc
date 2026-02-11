@@ -66,7 +66,7 @@ async function testMultipleResultSets() {
     if (result.length === 0) {
       console.log('⚠ WARNING: No result sets returned!');
       console.log('  Possible reasons:');
-      console.log('  1. Stored procedure doesn\'t return any SELECT results');
+      console.log('  1. Stored procedure does not return any SELECT results');
       console.log('  2. Stored procedure not configured with DYNAMIC RESULT SETS N');
       console.log('  3. All result sets were empty (0 columns)');
     } else {
