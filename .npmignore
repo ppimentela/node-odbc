@@ -1,5 +1,4 @@
 a.out
-build
 node_modules
 deps
 .idea
@@ -9,7 +8,6 @@ oldtest
 .env
 .vscode/
 test/
-build*
-lib/bindings
 .gitignore
 .github
+.eslintrc.js
