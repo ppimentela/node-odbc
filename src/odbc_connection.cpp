@@ -1905,20 +1905,23 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
           return;
         }
 
-        // Guardar el result set actual en allResultSets
-        //if (data->storedRows.size() > 0) {
-          std::vector<ColumnData*> currentResultSet;
-          for (size_t i = 0; i < data->storedRows.size(); i++) {
-            currentResultSet.push_back(data->storedRows[i]);
-          }
-          data->allResultSets.push_back(currentResultSet);
-        //}
-
-        // Limpiar storedRows para el próximo result set (sin liberar memoria)
-        data->storedRows.clear();
+        // Save the result set with column metadata to allResultSets
+        ResultSetData rsData;
+        rsData.rows = data->storedRows;
+        rsData.columns = data->columns;
+        rsData.column_count = data->column_count;
+        rsData.bound_columns = data->bound_columns;
+        rsData.rowCount = data->rowCount;
+        rsData.row_status_array = data->row_status_array;
         
-        // Limpiar columnas para el próximo result set
-        data->deleteColumns();
+        data->allResultSets.push_back(rsData);
+
+        // Clear storedRows and reset pointers (don't free, they're now in allResultSets)
+        data->storedRows.clear();
+        data->columns = NULL;
+        data->column_count = 0;
+        data->bound_columns = NULL;
+        data->row_status_array = NULL;
 
         // Intentar obtener el siguiente result set
         return_code = SQLMoreResults(data->hstmt);
@@ -1946,8 +1949,14 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
       
       // Procesar cada result set almacenado
       for (size_t rs_index = 0; rs_index < data->allResultSets.size(); rs_index++) {
-        // Restaurar temporalmente storedRows para procesarlo
-        data->storedRows = data->allResultSets[rs_index];
+        ResultSetData &rsData = data->allResultSets[rs_index];
+        
+        // Restore column metadata and rows for this result set
+        data->storedRows = rsData.rows;
+        data->columns = rsData.columns;
+        data->column_count = rsData.column_count;
+        data->bound_columns = rsData.bound_columns;
+        data->rowCount = rsData.rowCount;
         
         Napi::Array singleResult = process_data_for_napi(
           env,
@@ -1957,9 +1966,14 @@ class CallProcedureAsyncWorker : public ODBCAsyncWorker {
         
         allResults.Set(rs_index, singleResult);
         
-        // Limpiar storedRows después de procesar
-        data->storedRows.clear();
+        // Mark rows as processed (process_data_for_napi frees them internally)
+        data->allResultSets[rs_index].rows.clear();
       }
+      
+      // Reset pointers to avoid double-free in destructor
+      data->columns = NULL;
+      data->column_count = 0;
+      data->bound_columns = NULL;
 
       std::vector<napi_value> callbackArguments;
       callbackArguments.push_back(env.Null());

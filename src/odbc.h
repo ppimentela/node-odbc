@@ -185,6 +185,16 @@ typedef struct QueryOptions {
 
 } QueryOptions;
 
+// ResultSetData - holds a complete result set with its column metadata
+typedef struct ResultSetData {
+  std::vector<ColumnData*> rows;
+  Column **columns = NULL;
+  SQLSMALLINT column_count = 0;
+  ColumnBuffer *bound_columns = NULL;
+  SQLLEN rowCount = 0;
+  SQLUSMALLINT *row_status_array = NULL;
+} ResultSetData;
+
 // StatementData
 typedef struct StatementData {
 
@@ -209,7 +219,7 @@ typedef struct StatementData {
   SQLLEN                      rowCount;
 
   // Multiple result sets support (added by Pablo Pimentel)
-  std::vector<std::vector<ColumnData*>> allResultSets;
+  std::vector<ResultSetData> allResultSets;
 
   SQLSMALLINT                 maxColumnNameLength;
 
@@ -234,6 +244,7 @@ typedef struct StatementData {
 
   ~StatementData() {
     deleteColumns();
+    deleteAllResultSets();
 
     for (int i = 0; i < this->parameterCount; i++) {
       Parameter* parameter = this->parameters[i];
@@ -273,39 +284,98 @@ typedef struct StatementData {
     delete[] this->procedure; this->procedure = NULL;
   }
   
+  
+  // Static helper to free columns and bound_columns arrays
+  static void freeColumnsAndBuffers(Column **columns, SQLSMALLINT column_count, ColumnBuffer *bound_columns, SQLUSMALLINT *row_status_array) {
+    if (columns == NULL) return;
+    
+    for (int i = 0; i < column_count; i++) {
+      switch (columns[i]->bind_type) {
+        case SQL_C_CHAR:
+        case SQL_C_UTINYINT:
+        case SQL_C_BINARY:
+          delete[] (SQLCHAR *)bound_columns[i].buffer;
+          break;
+        case SQL_C_WCHAR:
+          delete[] (SQLWCHAR *)bound_columns[i].buffer;
+          break;
+        case SQL_C_DOUBLE:
+          delete[] (SQLDOUBLE *)bound_columns[i].buffer;
+          break;
+        case SQL_C_USHORT:
+          delete[] (SQLUSMALLINT *)bound_columns[i].buffer;
+          break;
+        case SQL_C_SLONG:
+          delete[] (SQLUINTEGER *)bound_columns[i].buffer;
+          break;
+        case SQL_C_UBIGINT:
+          delete[] (SQLUBIGINT *)bound_columns[i].buffer;
+          break;
+      }
+
+      delete[] columns[i]->ColumnName;
+      delete[] bound_columns[i].length_or_indicator_array;
+      delete columns[i];
+    }
+
+    delete[] row_status_array;
+    delete[] columns;
+    delete[] bound_columns;
+  }
+
+  // Free all result sets stored in allResultSets
+  void deleteAllResultSets() {
+    for (size_t rs_index = 0; rs_index < allResultSets.size(); rs_index++) {
+      ResultSetData &rsData = allResultSets[rs_index];
+      
+      // Free rows
+      for (size_t h = 0; h < rsData.rows.size(); h++) {
+        delete[] rsData.rows[h];
+      }
+      rsData.rows.clear();
+      
+      // Free columns and buffers
+      freeColumnsAndBuffers(rsData.columns, rsData.column_count, rsData.bound_columns, rsData.row_status_array);
+    }
+    allResultSets.clear();
+  }
+
   void deleteColumns() {
     for (size_t h = 0; h < this->storedRows.size(); h++) {
       delete[] storedRows[h];
     }
     this->storedRows.clear();
 
-    for (int i = 0; i < this->column_count; i++) {
-      switch (this->columns[i]->bind_type) {
-        case SQL_C_CHAR:
-        case SQL_C_UTINYINT:
-        case SQL_C_BINARY:
-          delete[] (SQLCHAR *)this->bound_columns[i].buffer;
-          break;
-        case SQL_C_WCHAR:
-          delete[] (SQLWCHAR *)this->bound_columns[i].buffer;
-          break;
-        case SQL_C_DOUBLE:
-          delete[] (SQLDOUBLE *)this->bound_columns[i].buffer;
-          break;
-        case SQL_C_USHORT:
-          delete[] (SQLUSMALLINT *)this->bound_columns[i].buffer;
-          break;
-        case SQL_C_SLONG:
-          delete[] (SQLUINTEGER *)this->bound_columns[i].buffer;
-          break;
-        case SQL_C_UBIGINT:
-          delete[] (SQLUBIGINT *)this->bound_columns[i].buffer;
-          break;
-      }
+    // NULL guard for columns pointer
+    if (this->columns != NULL) {
+      for (int i = 0; i < this->column_count; i++) {
+        switch (this->columns[i]->bind_type) {
+          case SQL_C_CHAR:
+          case SQL_C_UTINYINT:
+          case SQL_C_BINARY:
+            delete[] (SQLCHAR *)this->bound_columns[i].buffer;
+            break;
+          case SQL_C_WCHAR:
+            delete[] (SQLWCHAR *)this->bound_columns[i].buffer;
+            break;
+          case SQL_C_DOUBLE:
+            delete[] (SQLDOUBLE *)this->bound_columns[i].buffer;
+            break;
+          case SQL_C_USHORT:
+            delete[] (SQLUSMALLINT *)this->bound_columns[i].buffer;
+            break;
+          case SQL_C_SLONG:
+            delete[] (SQLUINTEGER *)this->bound_columns[i].buffer;
+            break;
+          case SQL_C_UBIGINT:
+            delete[] (SQLUBIGINT *)this->bound_columns[i].buffer;
+            break;
+        }
 
-      delete[] this->columns[i]->ColumnName;
-      delete[] this->bound_columns[i].length_or_indicator_array;
-      delete this->columns[i];
+        delete[] this->columns[i]->ColumnName;
+        delete[] this->bound_columns[i].length_or_indicator_array;
+        delete this->columns[i];
+      }
     }
     this->column_count = 0;
 
